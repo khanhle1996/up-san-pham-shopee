@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LYSILK · Lồng khung ảnh Shopee</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>LYSILK · Lồng khung ảnh Shopee</h1>
+    <p class="hint">Copy ảnh từ Pancake / web bất kỳ → bấm vào ô bên dưới → <kbd>Cmd/Ctrl + V</kbd> để dán. Kéo thả thumbnail vào 3 ô (1 lớn + 2 nhỏ). Bấm "Tải về" để xuất 2 ảnh PNG.</p>
+  </header>
+
+  <section class="paste-zone" id="pasteZone" tabindex="0">
+    <div class="paste-zone__inner">
+      <div class="paste-icon">📋</div>
+      <div class="paste-text">Bấm vào đây, sau đó <kbd>Cmd/Ctrl + V</kbd> để dán ảnh</div>
+      <div class="paste-sub">hoặc kéo thả file ảnh vào đây · <label class="file-link">chọn file<input type="file" id="fileInput" accept="image/*" multiple hidden /></label></div>
+    </div>
+  </section>
+
+  <section class="pool">
+    <h2>Ảnh đã dán <span class="pool-count" id="poolCount">(0)</span></h2>
+    <div class="pool-list" id="poolList">
+      <div class="pool-empty">Chưa có ảnh nào. Dán ảnh ở ô phía trên.</div>
+    </div>
+  </section>
+
+  <section class="composites">
+    <article class="composite" data-ratio="vuong">
+      <header class="composite__head">
+        <h2>Ảnh vuông (1000 × 1000)</h2>
+        <button class="btn-download" data-ratio="vuong">⬇ Tải ảnh vuông</button>
+      </header>
+      <div class="composite__stage">
+        <div class="slots" data-ratio="vuong" style="aspect-ratio: 1 / 1;">
+          <div class="slot slot-large" data-slot="large" data-ratio="vuong">
+            <span class="slot-label">Ảnh chính (lớn)</span>
+          </div>
+          <div class="slot slot-small-top" data-slot="smallTop" data-ratio="vuong">
+            <span class="slot-label">Phụ trên</span>
+          </div>
+          <div class="slot slot-small-bot" data-slot="smallBot" data-ratio="vuong">
+            <span class="slot-label">Phụ dưới</span>
+          </div>
+          <img class="frame-overlay" src="assets/khung-vuong.png" alt="" />
+        </div>
+      </div>
+    </article>
+
+    <article class="composite" data-ratio="3x4">
+      <header class="composite__head">
+        <h2>Ảnh 3:4 (1200 × 1600)</h2>
+        <button class="btn-download" data-ratio="3x4">⬇ Tải ảnh 3:4</button>
+      </header>
+      <div class="composite__stage">
+        <div class="slots" data-ratio="3x4" style="aspect-ratio: 3 / 4;">
+          <div class="slot slot-large" data-slot="large" data-ratio="3x4">
+            <span class="slot-label">Ảnh chính (lớn)</span>
+          </div>
+          <div class="slot slot-small-top" data-slot="smallTop" data-ratio="3x4">
+            <span class="slot-label">Phụ trên</span>
+          </div>
+          <div class="slot slot-small-bot" data-slot="smallBot" data-ratio="3x4">
+            <span class="slot-label">Phụ dưới</span>
+          </div>
+          <img class="frame-overlay" src="assets/khung-3x4.png" alt="" />
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="actions">
+    <button class="btn-download-all" id="downloadAll">⬇ Tải cả 2 ảnh</button>
+    <button class="btn-clear" id="clearAll">🗑 Xoá hết</button>
+  </section>
+
+  <footer>
+    <small>LYSILK Shopee · build static, xử lý ảnh hoàn toàn ở trình duyệt.</small>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
