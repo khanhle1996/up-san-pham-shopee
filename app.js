@@ -564,7 +564,14 @@ async function extractProductImages(productUrl) {
       const key = hash ? hash[1] : u;
       if (seen.has(key)) continue;
       seen.add(key);
-      const resized = u.replace(/\/web-media(?:-\d+)?\//, '/1/s1500x2250/fwebp80/');
+      // Bucket-aware resize:
+      //   /web-media/...        → /1/s1500x2250/fwebp80/...
+      //   /web-media-<N>/...    → /web-media-<N>/s1500x2250/fwebp80/...
+      const resized = u.replace(/\/(web-media(?:-\d+)?)\//, (_, bucket) =>
+        bucket === 'web-media'
+          ? '/1/s1500x2250/fwebp80/'
+          : `/${bucket}/s1500x2250/fwebp80/`
+      );
       result.push(resized);
     }
   }
