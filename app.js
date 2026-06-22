@@ -459,9 +459,25 @@ function applySlotTransform(slot) {
   if (!data) return;
   const img = slot.querySelector('.slot-image');
   if (!img) return;
-  const tx = (data.offsetX || 0) * slot.clientWidth;
-  const ty = (data.offsetY || 0) * slot.clientHeight;
-  img.style.transform = `translate(${tx}px, ${ty}px) scale(${data.zoom || 1})`;
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  if (!iw || !ih) return; // not loaded yet — onload will re-call
+  const sw = slot.clientWidth, sh = slot.clientHeight;
+  if (!sw || !sh) return;
+  const imgRatio = iw / ih;
+  const slotRatio = sw / sh;
+  // Cover-fit base scale (CSS px per source px) — same logic as canvas render
+  const C = (imgRatio > slotRatio) ? (sh / ih) : (sw / iw);
+  const scale = C * (data.zoom || 1);
+  const dispW = iw * scale;
+  const dispH = ih * scale;
+  // Center then apply offset (offset is fraction of slot W/H)
+  const left = (sw - dispW) / 2 + (data.offsetX || 0) * sw;
+  const top  = (sh - dispH) / 2 + (data.offsetY || 0) * sh;
+  img.style.width = dispW + 'px';
+  img.style.height = dispH + 'px';
+  img.style.left = left + 'px';
+  img.style.top = top + 'px';
+  img.style.transform = '';
 }
 
 function renderAllSlots() {
@@ -493,9 +509,10 @@ function renderAllSlots() {
 
     const img = document.createElement('img');
     img.className = 'slot-image';
-    img.src = item.dataUrl;
     img.draggable = false;
     img.alt = '';
+    img.addEventListener('load', () => applySlotTransform(slot));
+    img.src = item.dataUrl;
     slot.insertBefore(img, slot.firstChild);
 
     const removeBtn = document.createElement('button');

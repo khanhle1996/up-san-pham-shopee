@@ -317,13 +317,11 @@ kbd {
 }
 .slot-image {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform-origin: center center;
+  max-width: none;
+  max-height: none;
   user-select: none;
   pointer-events: none;
+  /* width, height, left, top are set inline by applySlotTransform() */
 }
 .slot-remove {
   position: absolute;
