@@ -406,26 +406,26 @@ function bindUrlFetch() {
     if (!url) { setStatus('Dán link sản phẩm trước.', 'is-error'); return; }
     if (!/^https?:\/\//i.test(url)) { setStatus('Link phải bắt đầu bằng http:// hoặc https://', 'is-error'); return; }
     btn.disabled = true;
-    setStatus('Đang lấy danh sách ảnh từ trang sản phẩm...');
+    setStatus('Đang tải trang sản phẩm + lọc phân loại size S...');
     try {
       const imgUrls = await extractProductImages(url);
       if (imgUrls.length === 0) {
-        setStatus('Không tìm thấy ảnh sản phẩm nào ở trang này.', 'is-error');
+        setStatus('Không có ảnh nào trong các phân loại size S.', 'is-error');
         return;
       }
-      setStatus(`Tìm thấy ${imgUrls.length} ảnh. Đang tải về trình duyệt...`);
+      setStatus(`Tìm thấy ${imgUrls.length} ảnh size S. Đang tải về trình duyệt...`);
       let ok = 0, fail = 0;
       for (let i = 0; i < imgUrls.length; i++) {
         try {
           await addImageFromUrl(imgUrls[i]);
           ok++;
-          setStatus(`Đang tải ${i + 1}/${imgUrls.length} (đã thêm ${ok})...`);
+          setStatus(`Size S — đang tải ${i + 1}/${imgUrls.length} (thành công ${ok})...`);
         } catch (e) {
           console.warn('Failed image', imgUrls[i], e);
           fail++;
         }
       }
-      setStatus(`Đã thêm ${ok} ảnh vào pool${fail ? ` (lỗi ${fail})` : ''}. Kéo vào 3 ô bên dưới để ghép.`, 'is-success');
+      setStatus(`✓ Đã thêm ${ok} ảnh size S vào pool${fail ? ` (lỗi ${fail})` : ''}. Kéo vào 3 ô của mỗi khung.`, 'is-success');
     } catch (e) {
       console.error(e);
       setStatus('Lỗi: ' + e.message, 'is-error');
@@ -439,34 +439,83 @@ function bindUrlFetch() {
 }
 
 async function extractProductImages(productUrl) {
-  // Use Jina Reader (https://r.jina.ai/) as a CORS-friendly proxy. It returns the page as markdown
-  // with all image URLs preserved, and reflects the Origin header for CORS.
+  // Fetch raw HTML via Jina Reader proxy (X-Return-Format: html keeps <script> content intact,
+  // which is needed to parse the embedded `product.dispatch('viewProduct', {...})` JSON).
   const proxyUrl = 'https://r.jina.ai/' + productUrl;
-  const res = await fetch(proxyUrl, { headers: { 'Accept': 'text/plain' } });
+  const res = await fetch(proxyUrl, { headers: { 'X-Return-Format': 'html' } });
   if (!res.ok) throw new Error(`Proxy trả về ${res.status}`);
-  const text = await res.text();
+  const html = await res.text();
 
-  // Find Pancake CDN image URLs; keep only large product photos (original w & h >= 1000 in path tag).
-  const re = /https?:\/\/content\.pancake\.vn\/[^\s)\]"'<>]+/gi;
-  const urls = [...new Set(text.match(re) || [])];
+  // Locate the JSON blob inside product.dispatch('viewProduct', {...})
+  const marker = html.search(/product\.dispatch\(\s*['"]viewProduct['"]\s*,\s*\{/);
+  if (marker === -1) {
+    throw new Error('Không tìm thấy dữ liệu sản phẩm trong trang. Trang có đúng dạng Lysilk/Pancake không?');
+  }
+  const braceStart = html.indexOf('{', marker);
+  const jsonEnd = findMatchingBrace(html, braceStart);
+  if (jsonEnd === -1) throw new Error('Không parse được JSON sản phẩm.');
+  let product;
+  try {
+    product = JSON.parse(html.slice(braceStart, jsonEnd + 1));
+  } catch (e) {
+    throw new Error('JSON sản phẩm lỗi: ' + e.message);
+  }
+
+  const variations = Array.isArray(product.variations) ? product.variations : [];
+  if (variations.length === 0) {
+    throw new Error('Sản phẩm không có phân loại nào.');
+  }
+
+  // Filter to variations that have a "Size" field with value "S" (case-insensitive)
+  const sizeS = variations.filter(v => {
+    const fields = Array.isArray(v.fields) ? v.fields : [];
+    return fields.some(f =>
+      f && typeof f.name === 'string' && /size/i.test(f.name) &&
+      typeof f.value === 'string' && f.value.trim().toUpperCase() === 'S'
+    );
+  });
+  if (sizeS.length === 0) {
+    throw new Error('Không có phân loại nào với size S. Sản phẩm này có size khác.');
+  }
+
+  // Collect images; dedupe by content hash in URL path
   const seen = new Set();
   const result = [];
-  for (const u of urls) {
-    const dim = u.match(/-w:(\d+)-h:(\d+)/);
-    if (!dim) continue;
-    const w = +dim[1], h = +dim[2];
-    if (w < 1000 || h < 1000) continue; // skip icons/banners
-    // Dedup by content hash in path (32+ hex chars)
-    const hash = u.match(/\/([a-f0-9]{32,})/);
-    const key = hash ? hash[1] : u;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    // Upgrade to highest-resolution variant the CDN serves on this path style.
-    // Pattern: /1/s{W}x{H}/fwebpQQ/... → request /1/s1500x2250/... so we get a usable size.
-    const upgraded = u.replace(/\/s\d+x\d+\//, '/s1500x2250/');
-    result.push(upgraded);
+  for (const v of sizeS) {
+    const imgs = Array.isArray(v.images) ? v.images : [];
+    for (const u of imgs) {
+      const hash = u.match(/\/([a-f0-9]{32,})/);
+      const key = hash ? hash[1] : u;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      // Convert raw web-media URL to a resized variant the CDN serves with CORS.
+      // Pattern: /web-media/AB/CD/.../HASH-... → /1/s1500x2250/fwebp80/AB/CD/.../HASH-...
+      const resized = u.replace(/\/web-media(?:-\d+)?\//, '/1/s1500x2250/fwebp80/');
+      result.push(resized);
+    }
   }
   return result;
+}
+
+function findMatchingBrace(s, start) {
+  // Returns index of matching '}' for the '{' at s[start]; respects strings and escapes.
+  if (s[start] !== '{') return -1;
+  let depth = 0;
+  let inStr = false;
+  let escape = false;
+  for (let i = start; i < s.length; i++) {
+    const c = s[i];
+    if (escape) { escape = false; continue; }
+    if (c === '\\') { escape = true; continue; }
+    if (c === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (c === '{') depth++;
+    else if (c === '}') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
 }
 
 async function addImageFromUrl(imgUrl) {

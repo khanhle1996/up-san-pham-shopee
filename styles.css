@@ -111,8 +111,13 @@ kbd {
   gap: 24px;
   margin-top: 28px;
 }
-@media (max-width: 900px) {
+.composites--row { grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+@media (max-width: 1100px) {
+  .composites--row { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 700px) {
   .composites { grid-template-columns: 1fr; }
+  .composites--row { grid-template-columns: 1fr; }
 }
 .composite {
   background: var(--card);
@@ -128,7 +133,8 @@ kbd {
   gap: 12px;
   flex-wrap: wrap;
 }
-.composite__head h2 { margin: 0; font-size: 15px; }
+.composite__head h2 { margin: 0; font-size: 14px; line-height: 1.3; }
+.composite__head h2 small { color: var(--muted); font-weight: 400; font-size: 11px; display: block; }
 .btn-download {
   background: var(--accent);
   color: #fff;
@@ -227,17 +233,12 @@ kbd {
 }
 .btn-clear:hover { color: var(--accent); border-color: var(--accent); }
 
-.divider {
-  margin: 40px 0 28px;
-  border: none;
-  border-top: 1px dashed var(--border-strong);
-}
-
 .url-fetch {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 18px 20px;
+  margin-bottom: 20px;
 }
 .url-fetch h2 { margin: 0 0 12px; font-size: 16px; }
 .url-fetch h2 small { color: var(--muted); font-weight: 400; font-size: 13px; }
@@ -276,7 +277,10 @@ kbd {
 .url-status.is-error { color: var(--accent); }
 .url-status.is-success { color: #0a7f3f; }
 
-.composites--plain { grid-template-columns: 1fr; margin-top: 16px; }
-.composites--plain .composite { max-width: 720px; margin: 0 auto; }
+.paste-zone { padding: 18px; }
+.paste-zone .paste-text { font-size: 14px; font-weight: 400; }
+.composite { padding: 12px; }
+.composite__head { margin-bottom: 8px; }
+.btn-download { padding: 6px 10px; font-size: 12px; }
 
 footer { margin-top: 32px; text-align: center; color: var(--muted); }
