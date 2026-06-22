@@ -96,6 +96,32 @@ for (const [ratio, spec] of Object.entries(SLOT_COORDS)) {
 function freshSlotData(id) { return { id, offsetX: 0, offsetY: 0, zoom: 1 }; }
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
+// Clamp slot's offsetX/Y so the image always covers the entire slot (no white edges).
+// Image display size (canvas px) = iw*C*zoom × ih*C*zoom, where C = cover-fit base scale.
+// For the image to cover slot (dw × dh) entirely after translate (offsetX*dw, offsetY*dh):
+//   |offsetX| <= (iw*C*zoom/dw - 1) / 2,  same for Y. Negative cap is treated as 0.
+function clampSlotTransform(ratio, slotName) {
+  const data = assignments[ratio][slotName];
+  if (!data || data.id == null) return;
+  const item = pool.find(p => p.id === data.id);
+  if (!item) return;
+  const img = item.img;
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  if (!iw || !ih) return;
+  const spec = SLOT_COORDS[ratio];
+  const slot = spec.slots[slotName];
+  const dw = slot.w, dh = slot.h;
+  const imgRatio = iw / ih;
+  const slotRatio = dw / dh;
+  const C = (imgRatio > slotRatio) ? (dh / ih) : (dw / iw);
+  const z = data.zoom || 1;
+  const maxOX = Math.max(0, (iw * C * z / dw - 1) / 2);
+  const maxOY = Math.max(0, (ih * C * z / dh - 1) / 2);
+  data.offsetX = clamp(data.offsetX || 0, -maxOX, maxOX);
+  data.offsetY = clamp(data.offsetY || 0, -maxOY, maxOY);
+}
+
 // ----- Init -----
 function init() {
   preloadFrames();
@@ -367,6 +393,7 @@ function bindDragDrop() {
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08;
       data.zoom = clamp((data.zoom || 1) * factor, 1, 6);
+      clampSlotTransform(slot.dataset.ratio, slot.dataset.slot);
       applySlotTransform(slot);
     }, { passive: false });
 
@@ -399,6 +426,7 @@ function bindDragDrop() {
     if (!data) return;
     data.offsetX = panState.baseOffsetX + dx / panState.slotW;
     data.offsetY = panState.baseOffsetY + dy / panState.slotH;
+    clampSlotTransform(ratio, slotName);
     applySlotTransform(panState.slot);
   });
   document.addEventListener('mouseup', () => { panState = null; });
