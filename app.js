@@ -21,6 +21,15 @@ const SLOT_COORDS = {
       smallBot: { x:   0, y: 800, w: 400, h:  800 },
     },
   },
+  'vuong-plain': {
+    canvas: { w: 1000, h: 1000 },
+    framePath: null, // no frame overlay
+    slots: {
+      large:    { x: 330, y:   0, w: 670, h: 1000 },
+      smallTop: { x:   0, y:   0, w: 330, h:  500 },
+      smallBot: { x:   0, y: 500, w: 330, h:  500 },
+    },
+  },
 };
 
 // State
@@ -28,6 +37,7 @@ const pool = [];                     // [{ id, dataUrl, img }]
 const assignments = {                // ratio -> slot -> pool item id
   vuong: { large: null, smallTop: null, smallBot: null },
   '3x4': { large: null, smallTop: null, smallBot: null },
+  'vuong-plain': { large: null, smallTop: null, smallBot: null },
 };
 const frameImages = {};              // ratio -> HTMLImageElement (preloaded)
 let nextId = 1;
@@ -39,14 +49,17 @@ function init() {
   bindFileInput();
   bindDragDrop();
   bindButtons();
+  bindUrlFetch();
   renderPool();
   renderAllSlots();
 }
 
 function preloadFrames() {
   for (const ratio of Object.keys(SLOT_COORDS)) {
+    const path = SLOT_COORDS[ratio].framePath;
+    if (!path) continue;
     const img = new Image();
-    img.src = SLOT_COORDS[ratio].framePath;
+    img.src = path;
     frameImages[ratio] = img;
   }
 }
@@ -333,16 +346,22 @@ function downloadCanvas(canvas, filename) {
   }, 'image/png');
 }
 
+const RATIO_FILENAMES = {
+  'vuong': 'Shopee_Vuong',
+  '3x4': 'Shopee_3x4',
+  'vuong-plain': 'Vuong_KhongKhung',
+};
+
 function downloadRatio(ratio) {
   const a = assignments[ratio];
   if (a.large == null && a.smallTop == null && a.smallBot == null) {
-    alert('Chưa có ảnh nào trong khung ' + ratio + '. Kéo ảnh vào ô trước.');
+    alert('Chưa có ảnh nào trong khung này. Kéo ảnh vào ô trước.');
     return;
   }
   const canvas = renderRatio(ratio);
   const ts = timestamp();
-  const name = (ratio === 'vuong' ? 'Vuong' : '3x4');
-  downloadCanvas(canvas, `Shopee_${name}_${ts}.png`);
+  const prefix = RATIO_FILENAMES[ratio] || ratio;
+  downloadCanvas(canvas, `${prefix}_${ts}.png`);
 }
 
 function timestamp() {
@@ -367,6 +386,115 @@ function bindButtons() {
     }
     renderPool();
     renderAllSlots();
+  });
+}
+
+// ----- URL fetcher: get product images from a Lysilk/Pancake page via Jina Reader proxy -----
+function bindUrlFetch() {
+  const input = document.getElementById('urlInput');
+  const btn = document.getElementById('fetchBtn');
+  const status = document.getElementById('urlStatus');
+
+  const setStatus = (msg, kind = '') => {
+    status.textContent = msg;
+    status.classList.remove('is-error', 'is-success');
+    if (kind) status.classList.add(kind);
+  };
+
+  const doFetch = async () => {
+    const url = input.value.trim();
+    if (!url) { setStatus('Dán link sản phẩm trước.', 'is-error'); return; }
+    if (!/^https?:\/\//i.test(url)) { setStatus('Link phải bắt đầu bằng http:// hoặc https://', 'is-error'); return; }
+    btn.disabled = true;
+    setStatus('Đang lấy danh sách ảnh từ trang sản phẩm...');
+    try {
+      const imgUrls = await extractProductImages(url);
+      if (imgUrls.length === 0) {
+        setStatus('Không tìm thấy ảnh sản phẩm nào ở trang này.', 'is-error');
+        return;
+      }
+      setStatus(`Tìm thấy ${imgUrls.length} ảnh. Đang tải về trình duyệt...`);
+      let ok = 0, fail = 0;
+      for (let i = 0; i < imgUrls.length; i++) {
+        try {
+          await addImageFromUrl(imgUrls[i]);
+          ok++;
+          setStatus(`Đang tải ${i + 1}/${imgUrls.length} (đã thêm ${ok})...`);
+        } catch (e) {
+          console.warn('Failed image', imgUrls[i], e);
+          fail++;
+        }
+      }
+      setStatus(`Đã thêm ${ok} ảnh vào pool${fail ? ` (lỗi ${fail})` : ''}. Kéo vào 3 ô bên dưới để ghép.`, 'is-success');
+    } catch (e) {
+      console.error(e);
+      setStatus('Lỗi: ' + e.message, 'is-error');
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  btn.addEventListener('click', doFetch);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') doFetch(); });
+}
+
+async function extractProductImages(productUrl) {
+  // Use Jina Reader (https://r.jina.ai/) as a CORS-friendly proxy. It returns the page as markdown
+  // with all image URLs preserved, and reflects the Origin header for CORS.
+  const proxyUrl = 'https://r.jina.ai/' + productUrl;
+  const res = await fetch(proxyUrl, { headers: { 'Accept': 'text/plain' } });
+  if (!res.ok) throw new Error(`Proxy trả về ${res.status}`);
+  const text = await res.text();
+
+  // Find Pancake CDN image URLs; keep only large product photos (original w & h >= 1000 in path tag).
+  const re = /https?:\/\/content\.pancake\.vn\/[^\s)\]"'<>]+/gi;
+  const urls = [...new Set(text.match(re) || [])];
+  const seen = new Set();
+  const result = [];
+  for (const u of urls) {
+    const dim = u.match(/-w:(\d+)-h:(\d+)/);
+    if (!dim) continue;
+    const w = +dim[1], h = +dim[2];
+    if (w < 1000 || h < 1000) continue; // skip icons/banners
+    // Dedup by content hash in path (32+ hex chars)
+    const hash = u.match(/\/([a-f0-9]{32,})/);
+    const key = hash ? hash[1] : u;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    // Upgrade to highest-resolution variant the CDN serves on this path style.
+    // Pattern: /1/s{W}x{H}/fwebpQQ/... → request /1/s1500x2250/... so we get a usable size.
+    const upgraded = u.replace(/\/s\d+x\d+\//, '/s1500x2250/');
+    result.push(upgraded);
+  }
+  return result;
+}
+
+async function addImageFromUrl(imgUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        // Re-encode to a data URL so it lives independently of network and can be exported via canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        const localImg = new Image();
+        localImg.onload = () => {
+          pool.push({ id: nextId++, dataUrl, img: localImg });
+          renderPool();
+          resolve();
+        };
+        localImg.onerror = () => reject(new Error('Không decode được ảnh local'));
+        localImg.src = dataUrl;
+      } catch (err) {
+        reject(err);
+      }
+    };
+    img.onerror = () => reject(new Error('Không tải được ảnh từ CDN'));
+    img.src = imgUrl;
   });
 }
 

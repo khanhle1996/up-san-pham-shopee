@@ -76,6 +76,39 @@
     <button class="btn-clear" id="clearAll">🗑 Xoá hết</button>
   </section>
 
+  <hr class="divider" />
+
+  <section class="url-fetch">
+    <h2>Ghép từ link sản phẩm <small>(auto lấy ảnh từ web Lysilk / Pancake)</small></h2>
+    <div class="url-form">
+      <input type="url" id="urlInput" placeholder="https://www.lysilk.vn/products/bn651" />
+      <button id="fetchBtn" class="btn-fetch">📥 Lấy ảnh sản phẩm</button>
+    </div>
+    <div class="url-status" id="urlStatus">Dán link sản phẩm rồi bấm "Lấy ảnh" — ảnh sẽ tự động thêm vào pool phía trên.</div>
+  </section>
+
+  <section class="composites composites--plain">
+    <article class="composite" data-ratio="vuong-plain">
+      <header class="composite__head">
+        <h2>Ảnh vuông không khung (1000 × 1000)</h2>
+        <button class="btn-download" data-ratio="vuong-plain">⬇ Tải ảnh vuông</button>
+      </header>
+      <div class="composite__stage">
+        <div class="slots" data-ratio="vuong-plain" style="aspect-ratio: 1 / 1;">
+          <div class="slot slot-large" data-slot="large" data-ratio="vuong-plain">
+            <span class="slot-label">Ảnh chính (lớn)</span>
+          </div>
+          <div class="slot slot-small-top" data-slot="smallTop" data-ratio="vuong-plain">
+            <span class="slot-label">Phụ trên</span>
+          </div>
+          <div class="slot slot-small-bot" data-slot="smallBot" data-ratio="vuong-plain">
+            <span class="slot-label">Phụ dưới</span>
+          </div>
+        </div>
+      </div>
+    </article>
+  </section>
+
   <footer>
     <small>LYSILK Shopee · build static, xử lý ảnh hoàn toàn ở trình duyệt.</small>
   </footer>
