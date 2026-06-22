@@ -12,20 +12,23 @@
     <p class="hint">Dán link sản phẩm để auto lấy ảnh size <strong>S</strong>, hoặc dán ảnh trực tiếp (Cmd/Ctrl+V). Kéo thả thumbnail vào 3 ô của mỗi khung rồi bấm "Tải".</p>
   </header>
 
-  <section class="url-fetch">
-    <h2>Lấy ảnh từ link sản phẩm <small>(Lysilk / Pancake — chỉ lấy ảnh phân loại size S)</small></h2>
-    <div class="url-form">
+  <section class="source-block">
+    <h2>Nguồn ảnh <small>— lấy từ link sản phẩm hoặc dán/kéo thả ảnh</small></h2>
+
+    <div class="source-row">
+      <span class="source-label">Link Lysilk/Pancake (chỉ lấy ảnh size S):</span>
       <input type="url" id="urlInput" placeholder="https://www.lysilk.vn/products/bn651" />
       <button id="fetchBtn" class="btn-fetch">📥 Lấy ảnh size S</button>
     </div>
-    <div class="url-status" id="urlStatus">Dán link sản phẩm rồi bấm "Lấy ảnh size S" — ảnh sẽ tự động thêm vào pool phía dưới.</div>
-  </section>
 
-  <section class="paste-zone" id="pasteZone" tabindex="0">
-    <div class="paste-zone__inner">
-      <div class="paste-text">Hoặc copy ảnh từ web bất kỳ → bấm vào đây → <kbd>Cmd/Ctrl + V</kbd> để dán</div>
-      <div class="paste-sub">kéo thả file ảnh vào đây · <label class="file-link">chọn file<input type="file" id="fileInput" accept="image/*" multiple hidden /></label></div>
+    <div class="source-sep"><span>hoặc</span></div>
+
+    <div class="source-paste" id="pasteZone" tabindex="0">
+      <div class="source-paste__main">Copy ảnh từ web bất kỳ → bấm vào đây → <kbd>Cmd/Ctrl + V</kbd> để dán</div>
+      <div class="source-paste__sub">kéo thả file ảnh vào đây · <label class="file-link">chọn file<input type="file" id="fileInput" accept="image/*" multiple hidden /></label></div>
     </div>
+
+    <div class="url-status" id="urlStatus">Chưa thao tác — dán link hoặc ảnh để bắt đầu.</div>
   </section>
 
   <section class="pool">
