@@ -535,20 +535,35 @@ function drawWithTransform(ctx, img, dx, dy, dw, dh, offsetX, offsetY, zoom) {
   ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 }
 
-function downloadCanvas(canvas, filename) {
-  return new Promise(resolve => {
-    canvas.toBlob(blob => {
-      if (!blob) { alert('Lỗi xuất ' + filename); resolve(); return; }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => { URL.revokeObjectURL(url); resolve(); }, 300);
-    }, 'image/png');
-  });
+const MAX_OUTPUT_BYTES = Math.floor(1.8 * 1024 * 1024); // 1.8MB per file
+
+// Compress canvas to JPEG with decreasing quality until size <= maxBytes.
+// Returns the best (smallest) blob found, even if still over target.
+async function canvasToJpegUnderSize(canvas, maxBytes) {
+  const qualities = [0.92, 0.85, 0.78, 0.70, 0.62, 0.55, 0.48, 0.40];
+  let last = null;
+  for (const q of qualities) {
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', q));
+    if (!blob) continue;
+    last = { blob, q };
+    if (blob.size <= maxBytes) return last;
+  }
+  return last;
+}
+
+async function downloadCanvas(canvas, filenameBase) {
+  const result = await canvasToJpegUnderSize(canvas, MAX_OUTPUT_BYTES);
+  if (!result || !result.blob) { alert('Lỗi xuất ảnh ' + filenameBase); return; }
+  const { blob } = result;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filenameBase}.jpg`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  await new Promise(r => setTimeout(r, 300));
+  URL.revokeObjectURL(url);
 }
 
 function hasAnyImage(ratio) {
@@ -564,7 +579,7 @@ async function downloadRatio(ratio) {
   const canvas = renderRatio(ratio);
   const ts = timestamp();
   const prefix = RATIO_FILENAMES[ratio] || ratio;
-  await downloadCanvas(canvas, `${prefix}_${ts}.png`);
+  await downloadCanvas(canvas, `${prefix}_${ts}`);
 }
 
 async function downloadAllFilled() {
@@ -577,7 +592,7 @@ async function downloadAllFilled() {
     const canvas = renderRatio(ratio);
     const ts = timestamp();
     const prefix = RATIO_FILENAMES[ratio] || ratio;
-    await downloadCanvas(canvas, `${prefix}_${ts}.png`);
+    await downloadCanvas(canvas, `${prefix}_${ts}`);
     await new Promise(r => setTimeout(r, 150));
   }
 }
