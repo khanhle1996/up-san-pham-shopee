@@ -1,50 +1,97 @@
 'use strict';
 
-// Slot coordinates in the output canvas (pixels). Must match CSS % in styles.css.
-// Photos are drawn first; the frame PNG is overlaid on top (transparent center reveals photos).
-const SLOT_COORDS = {
-  vuong: {
-    canvas: { w: 1000, h: 1000 },
-    framePath: 'assets/khung-vuong.png',
+// All composite definitions. JS generates the DOM for each.
+// Photos draw first; frame PNG overlays on top (transparent center reveals photos).
+const VUONG_FRAME = 'assets/khung-vuong.png';
+const X34_FRAME = 'assets/khung-3x4.png';
+const FULL_SLOT = { x: 0, y: 0, w: 1, h: 1, cssLeft: '0%', cssTop: '0%', cssWidth: '100%', cssHeight: '100%', label: 'Ảnh' };
+
+// Helper to build single-image specs (1 slot covering whole canvas)
+function single(canvasW, canvasH, frame, title) {
+  return {
+    canvas: { w: canvasW, h: canvasH },
+    framePath: frame,
+    title,
+    aspectRatio: `${canvasW} / ${canvasH}`,
     slots: {
-      large:    { x: 330, y:   0, w: 670, h: 1000 },
-      smallTop: { x:   0, y:   0, w: 330, h:  500 },
-      smallBot: { x:   0, y: 500, w: 330, h:  500 },
+      full: { x: 0, y: 0, w: canvasW, h: canvasH, cssLeft: '0%', cssTop: '0%', cssWidth: '100%', cssHeight: '100%', label: '' },
+    },
+  };
+}
+
+const SLOT_COORDS = {
+  // === Group: composites (1 large + 2 small) ===
+  'vuong': {
+    group: 'composite', canvas: { w: 1000, h: 1000 }, framePath: VUONG_FRAME,
+    title: 'Vuông có khung', subtitle: '1000×1000', aspectRatio: '1 / 1',
+    slots: {
+      large:    { x: 330, y:   0, w: 670, h: 1000, cssLeft: '33%', cssTop: '0%',  cssWidth: '67%', cssHeight: '100%', label: 'Lớn' },
+      smallTop: { x:   0, y:   0, w: 330, h:  500, cssLeft: '0%',  cssTop: '0%',  cssWidth: '33%', cssHeight: '50%',  label: 'Trên' },
+      smallBot: { x:   0, y: 500, w: 330, h:  500, cssLeft: '0%',  cssTop: '50%', cssWidth: '33%', cssHeight: '50%',  label: 'Dưới' },
     },
   },
   '3x4': {
-    canvas: { w: 1200, h: 1600 },
-    framePath: 'assets/khung-3x4.png',
+    group: 'composite', canvas: { w: 1200, h: 1600 }, framePath: X34_FRAME,
+    title: '3:4 có khung', subtitle: '1200×1600', aspectRatio: '3 / 4',
     slots: {
-      large:    { x: 400, y:   0, w: 800, h: 1600 },
-      smallTop: { x:   0, y:   0, w: 400, h:  800 },
-      smallBot: { x:   0, y: 800, w: 400, h:  800 },
+      large:    { x: 400, y:   0, w: 800, h: 1600, cssLeft: '33.333%', cssTop: '0%',  cssWidth: '66.666%', cssHeight: '100%', label: 'Lớn' },
+      smallTop: { x:   0, y:   0, w: 400, h:  800, cssLeft: '0%',      cssTop: '0%',  cssWidth: '33.333%', cssHeight: '50%',  label: 'Trên' },
+      smallBot: { x:   0, y: 800, w: 400, h:  800, cssLeft: '0%',      cssTop: '50%', cssWidth: '33.333%', cssHeight: '50%',  label: 'Dưới' },
     },
   },
   'vuong-plain': {
-    canvas: { w: 1000, h: 1000 },
-    framePath: null, // no frame overlay
+    group: 'composite', canvas: { w: 1000, h: 1000 }, framePath: null,
+    title: 'Vuông không khung', subtitle: '1000×1000', aspectRatio: '1 / 1',
     slots: {
-      large:    { x: 330, y:   0, w: 670, h: 1000 },
-      smallTop: { x:   0, y:   0, w: 330, h:  500 },
-      smallBot: { x:   0, y: 500, w: 330, h:  500 },
+      large:    { x: 330, y:   0, w: 670, h: 1000, cssLeft: '33%', cssTop: '0%',  cssWidth: '67%', cssHeight: '100%', label: 'Lớn' },
+      smallTop: { x:   0, y:   0, w: 330, h:  500, cssLeft: '0%',  cssTop: '0%',  cssWidth: '33%', cssHeight: '50%',  label: 'Trên' },
+      smallBot: { x:   0, y: 500, w: 330, h:  500, cssLeft: '0%',  cssTop: '50%', cssWidth: '33%', cssHeight: '50%',  label: 'Dưới' },
     },
   },
+
+  // === Group: 4 single vuông (1 photo per frame) ===
+  'vuong-s1': { group: 'single-vuong', ...single(1000, 1000, VUONG_FRAME, 'Vuông 1') },
+  'vuong-s2': { group: 'single-vuong', ...single(1000, 1000, VUONG_FRAME, 'Vuông 2') },
+  'vuong-s3': { group: 'single-vuong', ...single(1000, 1000, VUONG_FRAME, 'Vuông 3') },
+  'vuong-s4': { group: 'single-vuong', ...single(1000, 1000, VUONG_FRAME, 'Vuông 4') },
+
+  // === Group: 4 single 3:4 (1 photo per frame) ===
+  '3x4-s1': { group: 'single-3x4', ...single(1200, 1600, X34_FRAME, '3:4 #1') },
+  '3x4-s2': { group: 'single-3x4', ...single(1200, 1600, X34_FRAME, '3:4 #2') },
+  '3x4-s3': { group: 'single-3x4', ...single(1200, 1600, X34_FRAME, '3:4 #3') },
+  '3x4-s4': { group: 'single-3x4', ...single(1200, 1600, X34_FRAME, '3:4 #4') },
+};
+
+const RATIO_FILENAMES = {
+  'vuong': 'Shopee_Vuong',
+  '3x4': 'Shopee_3x4',
+  'vuong-plain': 'Vuong_KhongKhung',
+  'vuong-s1': 'Vuong_1', 'vuong-s2': 'Vuong_2', 'vuong-s3': 'Vuong_3', 'vuong-s4': 'Vuong_4',
+  '3x4-s1': '3x4_1', '3x4-s2': '3x4_2', '3x4-s3': '3x4_3', '3x4-s4': '3x4_4',
+};
+
+const GROUP_CONTAINERS = {
+  'composite':    'composites-main',
+  'single-vuong': 'composites-vuong',
+  'single-3x4':   'composites-3x4',
 };
 
 // State
 const pool = [];                     // [{ id, dataUrl, img }]
-const assignments = {                // ratio -> slot -> pool item id
-  vuong: { large: null, smallTop: null, smallBot: null },
-  '3x4': { large: null, smallTop: null, smallBot: null },
-  'vuong-plain': { large: null, smallTop: null, smallBot: null },
-};
+const assignments = {};              // ratio -> slot -> pool item id
 const frameImages = {};              // ratio -> HTMLImageElement (preloaded)
 let nextId = 1;
+
+// Initialize assignments
+for (const [ratio, spec] of Object.entries(SLOT_COORDS)) {
+  assignments[ratio] = {};
+  for (const slotName of Object.keys(spec.slots)) assignments[ratio][slotName] = null;
+}
 
 // ----- Init -----
 function init() {
   preloadFrames();
+  buildCompositeDOM();
   bindPaste();
   bindFileInput();
   bindDragDrop();
@@ -55,12 +102,73 @@ function init() {
 }
 
 function preloadFrames() {
-  for (const ratio of Object.keys(SLOT_COORDS)) {
-    const path = SLOT_COORDS[ratio].framePath;
-    if (!path) continue;
+  const seen = new Set();
+  for (const spec of Object.values(SLOT_COORDS)) {
+    const path = spec.framePath;
+    if (!path || seen.has(path)) continue;
+    seen.add(path);
     const img = new Image();
     img.src = path;
-    frameImages[ratio] = img;
+    // Tag with all ratios that use this frame
+    for (const [ratio, s] of Object.entries(SLOT_COORDS)) {
+      if (s.framePath === path) frameImages[ratio] = img;
+    }
+  }
+}
+
+// ----- Build composite DOM dynamically -----
+function buildCompositeDOM() {
+  for (const [ratio, spec] of Object.entries(SLOT_COORDS)) {
+    const containerId = GROUP_CONTAINERS[spec.group];
+    const container = document.getElementById(containerId);
+    if (!container) continue;
+
+    const article = document.createElement('article');
+    article.className = 'composite composite--' + spec.group;
+    article.dataset.ratio = ratio;
+
+    const head = document.createElement('header');
+    head.className = 'composite__head';
+    head.innerHTML = `
+      <h2>${spec.title}${spec.subtitle ? ` <small>${spec.subtitle}</small>` : ''}</h2>
+      <button class="btn-download" data-ratio="${ratio}" title="Tải ảnh này">⬇</button>
+    `;
+    article.appendChild(head);
+
+    const stage = document.createElement('div');
+    stage.className = 'composite__stage';
+    const slotsEl = document.createElement('div');
+    slotsEl.className = 'slots';
+    slotsEl.dataset.ratio = ratio;
+    slotsEl.style.aspectRatio = spec.aspectRatio;
+
+    for (const [slotName, s] of Object.entries(spec.slots)) {
+      const slot = document.createElement('div');
+      slot.className = 'slot';
+      slot.dataset.slot = slotName;
+      slot.dataset.ratio = ratio;
+      slot.style.left = s.cssLeft;
+      slot.style.top = s.cssTop;
+      slot.style.width = s.cssWidth;
+      slot.style.height = s.cssHeight;
+      if (s.label) {
+        const label = document.createElement('span');
+        label.className = 'slot-label';
+        label.textContent = s.label;
+        slot.appendChild(label);
+      }
+      slotsEl.appendChild(slot);
+    }
+    if (spec.framePath) {
+      const frame = document.createElement('img');
+      frame.className = 'frame-overlay';
+      frame.src = spec.framePath;
+      frame.alt = '';
+      slotsEl.appendChild(frame);
+    }
+    stage.appendChild(slotsEl);
+    article.appendChild(stage);
+    container.appendChild(article);
   }
 }
 
@@ -68,21 +176,13 @@ function preloadFrames() {
 function bindPaste() {
   const zone = document.getElementById('pasteZone');
   zone.addEventListener('click', () => zone.focus());
-  // Global paste so user doesn't have to focus exactly
   document.addEventListener('paste', handlePaste);
 
-  // Drag-and-drop files onto paste zone
   ['dragenter', 'dragover'].forEach(ev => {
-    zone.addEventListener(ev, e => {
-      e.preventDefault();
-      zone.classList.add('is-drop-active');
-    });
+    zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('is-drop-active'); });
   });
   ['dragleave', 'drop'].forEach(ev => {
-    zone.addEventListener(ev, e => {
-      e.preventDefault();
-      zone.classList.remove('is-drop-active');
-    });
+    zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('is-drop-active'); });
   });
   zone.addEventListener('drop', e => {
     const files = [...(e.dataTransfer?.files || [])].filter(f => f.type.startsWith('image/'));
@@ -96,10 +196,7 @@ function handlePaste(e) {
   for (const item of items) {
     if (item.kind === 'file' && item.type.startsWith('image/')) {
       const file = item.getAsFile();
-      if (file) {
-        addFile(file);
-        added++;
-      }
+      if (file) { addFile(file); added++; }
     }
   }
   if (added > 0) e.preventDefault();
@@ -136,7 +233,7 @@ function renderPool() {
   if (pool.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'pool-empty';
-    empty.textContent = 'Chưa có ảnh nào. Dán ảnh ở ô phía trên.';
+    empty.textContent = 'Chưa có ảnh. Dán link hoặc paste ảnh ở trên.';
     list.appendChild(empty);
     return;
   }
@@ -153,17 +250,14 @@ function renderPool() {
     div.style.backgroundImage = `url("${item.dataUrl}")`;
     div.setAttribute('draggable', 'true');
     div.dataset.poolId = item.id;
-    div.title = inUse.has(item.id) ? 'Ảnh này đang được dùng' : 'Kéo vào ô để dùng';
+    div.title = inUse.has(item.id) ? 'Đang dùng' : 'Kéo vào ô để dùng';
 
     const remove = document.createElement('button');
     remove.className = 'thumb-remove';
     remove.type = 'button';
     remove.textContent = '×';
-    remove.title = 'Xoá ảnh khỏi pool';
-    remove.addEventListener('click', e => {
-      e.stopPropagation();
-      removeFromPool(item.id);
-    });
+    remove.title = 'Xoá';
+    remove.addEventListener('click', e => { e.stopPropagation(); removeFromPool(item.id); });
     div.appendChild(remove);
 
     div.addEventListener('dragstart', e => {
@@ -181,7 +275,6 @@ function removeFromPool(id) {
   const idx = pool.findIndex(p => p.id === id);
   if (idx === -1) return;
   pool.splice(idx, 1);
-  // Clear from any slot using it
   for (const ratio of Object.keys(assignments)) {
     for (const slotName of Object.keys(assignments[ratio])) {
       if (assignments[ratio][slotName] === id) assignments[ratio][slotName] = null;
@@ -215,14 +308,12 @@ function bindDragDrop() {
       if (payload.source === 'pool') {
         assignments[ratio][slotName] = payload.id;
       } else if (payload.source === 'slot') {
-        // Swap two slots (within the same composite)
         if (payload.ratio === ratio) {
           const src = assignments[ratio][payload.slot];
           const dst = assignments[ratio][slotName];
           assignments[ratio][slotName] = src;
           assignments[ratio][payload.slot] = dst;
         } else {
-          // Cross-ratio: copy the image (don't move it — other ratio may still want it)
           assignments[ratio][slotName] = assignments[payload.ratio][payload.slot];
         }
       }
@@ -269,7 +360,6 @@ function renderAllSlots() {
         slot.classList.remove('is-empty');
         slot.classList.add('has-image');
       } else {
-        // pool item was removed — clear
         assignments[ratio][slotName] = null;
         slot.style.backgroundImage = '';
         slot.classList.add('is-empty');
@@ -287,12 +377,9 @@ function renderRatio(ratio) {
   canvas.height = spec.canvas.h;
   const ctx = canvas.getContext('2d');
   ctx.imageSmoothingQuality = 'high';
-
-  // White background
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Draw photos cover-fit into each slot
   for (const [slotName, rect] of Object.entries(spec.slots)) {
     const id = assignments[ratio][slotName];
     if (id == null) continue;
@@ -301,7 +388,6 @@ function renderRatio(ratio) {
     drawCoverFit(ctx, item.img, rect.x, rect.y, rect.w, rect.h);
   }
 
-  // Overlay frame
   const frame = frameImages[ratio];
   if (frame && frame.complete) {
     ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
@@ -317,51 +403,58 @@ function drawCoverFit(ctx, img, dx, dy, dw, dh) {
   const imgRatio = iw / ih;
   let sx, sy, sw, sh;
   if (imgRatio > slotRatio) {
-    // image is wider — crop sides
-    sh = ih;
-    sw = ih * slotRatio;
-    sx = (iw - sw) / 2;
-    sy = 0;
+    sh = ih; sw = ih * slotRatio; sx = (iw - sw) / 2; sy = 0;
   } else {
-    // image is taller — crop top/bottom
-    sw = iw;
-    sh = iw / slotRatio;
-    sx = 0;
-    sy = (ih - sh) / 2;
+    sw = iw; sh = iw / slotRatio; sx = 0; sy = (ih - sh) / 2;
   }
   ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 }
 
 function downloadCanvas(canvas, filename) {
-  canvas.toBlob(blob => {
-    if (!blob) { alert('Lỗi xuất ảnh.'); return; }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }, 'image/png');
+  return new Promise(resolve => {
+    canvas.toBlob(blob => {
+      if (!blob) { alert('Lỗi xuất ' + filename); resolve(); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => { URL.revokeObjectURL(url); resolve(); }, 300);
+    }, 'image/png');
+  });
 }
 
-const RATIO_FILENAMES = {
-  'vuong': 'Shopee_Vuong',
-  '3x4': 'Shopee_3x4',
-  'vuong-plain': 'Vuong_KhongKhung',
-};
-
-function downloadRatio(ratio) {
+function hasAnyImage(ratio) {
   const a = assignments[ratio];
-  if (a.large == null && a.smallTop == null && a.smallBot == null) {
-    alert('Chưa có ảnh nào trong khung này. Kéo ảnh vào ô trước.');
+  return Object.values(a).some(v => v != null);
+}
+
+async function downloadRatio(ratio) {
+  if (!hasAnyImage(ratio)) {
+    alert('Chưa có ảnh trong khung "' + SLOT_COORDS[ratio].title + '". Kéo ảnh vào trước.');
     return;
   }
   const canvas = renderRatio(ratio);
   const ts = timestamp();
   const prefix = RATIO_FILENAMES[ratio] || ratio;
-  downloadCanvas(canvas, `${prefix}_${ts}.png`);
+  await downloadCanvas(canvas, `${prefix}_${ts}.png`);
+}
+
+async function downloadAllFilled() {
+  const filled = Object.keys(SLOT_COORDS).filter(hasAnyImage);
+  if (filled.length === 0) {
+    alert('Chưa có khung nào được điền ảnh.');
+    return;
+  }
+  for (const ratio of filled) {
+    const canvas = renderRatio(ratio);
+    const ts = timestamp();
+    const prefix = RATIO_FILENAMES[ratio] || ratio;
+    await downloadCanvas(canvas, `${prefix}_${ts}.png`);
+    await new Promise(r => setTimeout(r, 150));
+  }
 }
 
 function timestamp() {
@@ -374,10 +467,7 @@ function bindButtons() {
   document.querySelectorAll('.btn-download').forEach(btn => {
     btn.addEventListener('click', () => downloadRatio(btn.dataset.ratio));
   });
-  document.getElementById('downloadAll').addEventListener('click', () => {
-    downloadRatio('vuong');
-    setTimeout(() => downloadRatio('3x4'), 250);
-  });
+  document.getElementById('downloadAll').addEventListener('click', downloadAllFilled);
   document.getElementById('clearAll').addEventListener('click', () => {
     if (!confirm('Xoá hết ảnh và các vị trí đã chọn?')) return;
     pool.length = 0;
@@ -389,7 +479,7 @@ function bindButtons() {
   });
 }
 
-// ----- URL fetcher: get product images from a Lysilk/Pancake page via Jina Reader proxy -----
+// ----- URL fetcher -----
 function bindUrlFetch() {
   const input = document.getElementById('urlInput');
   const btn = document.getElementById('fetchBtn');
@@ -425,7 +515,7 @@ function bindUrlFetch() {
           fail++;
         }
       }
-      setStatus(`✓ Đã thêm ${ok} ảnh size S vào pool${fail ? ` (lỗi ${fail})` : ''}. Kéo vào 3 ô của mỗi khung.`, 'is-success');
+      setStatus(`✓ Đã thêm ${ok} ảnh size S vào pool${fail ? ` (lỗi ${fail})` : ''}. Kéo vào ô các khung.`, 'is-success');
     } catch (e) {
       console.error(e);
       setStatus('Lỗi: ' + e.message, 'is-error');
@@ -439,34 +529,23 @@ function bindUrlFetch() {
 }
 
 async function extractProductImages(productUrl) {
-  // Fetch raw HTML via Jina Reader proxy (X-Return-Format: html keeps <script> content intact,
-  // which is needed to parse the embedded `product.dispatch('viewProduct', {...})` JSON).
   const proxyUrl = 'https://r.jina.ai/' + productUrl;
   const res = await fetch(proxyUrl, { headers: { 'X-Return-Format': 'html' } });
   if (!res.ok) throw new Error(`Proxy trả về ${res.status}`);
   const html = await res.text();
 
-  // Locate the JSON blob inside product.dispatch('viewProduct', {...})
   const marker = html.search(/product\.dispatch\(\s*['"]viewProduct['"]\s*,\s*\{/);
-  if (marker === -1) {
-    throw new Error('Không tìm thấy dữ liệu sản phẩm trong trang. Trang có đúng dạng Lysilk/Pancake không?');
-  }
+  if (marker === -1) throw new Error('Không tìm thấy dữ liệu sản phẩm. Trang có đúng dạng Lysilk/Pancake không?');
   const braceStart = html.indexOf('{', marker);
   const jsonEnd = findMatchingBrace(html, braceStart);
   if (jsonEnd === -1) throw new Error('Không parse được JSON sản phẩm.');
   let product;
-  try {
-    product = JSON.parse(html.slice(braceStart, jsonEnd + 1));
-  } catch (e) {
-    throw new Error('JSON sản phẩm lỗi: ' + e.message);
-  }
+  try { product = JSON.parse(html.slice(braceStart, jsonEnd + 1)); }
+  catch (e) { throw new Error('JSON sản phẩm lỗi: ' + e.message); }
 
   const variations = Array.isArray(product.variations) ? product.variations : [];
-  if (variations.length === 0) {
-    throw new Error('Sản phẩm không có phân loại nào.');
-  }
+  if (variations.length === 0) throw new Error('Sản phẩm không có phân loại nào.');
 
-  // Filter to variations that have a "Size" field with value "S" (case-insensitive)
   const sizeS = variations.filter(v => {
     const fields = Array.isArray(v.fields) ? v.fields : [];
     return fields.some(f =>
@@ -474,11 +553,8 @@ async function extractProductImages(productUrl) {
       typeof f.value === 'string' && f.value.trim().toUpperCase() === 'S'
     );
   });
-  if (sizeS.length === 0) {
-    throw new Error('Không có phân loại nào với size S. Sản phẩm này có size khác.');
-  }
+  if (sizeS.length === 0) throw new Error('Không có phân loại nào với size S.');
 
-  // Collect images; dedupe by content hash in URL path
   const seen = new Set();
   const result = [];
   for (const v of sizeS) {
@@ -488,8 +564,6 @@ async function extractProductImages(productUrl) {
       const key = hash ? hash[1] : u;
       if (seen.has(key)) continue;
       seen.add(key);
-      // Convert raw web-media URL to a resized variant the CDN serves with CORS.
-      // Pattern: /web-media/AB/CD/.../HASH-... → /1/s1500x2250/fwebp80/AB/CD/.../HASH-...
       const resized = u.replace(/\/web-media(?:-\d+)?\//, '/1/s1500x2250/fwebp80/');
       result.push(resized);
     }
@@ -498,11 +572,8 @@ async function extractProductImages(productUrl) {
 }
 
 function findMatchingBrace(s, start) {
-  // Returns index of matching '}' for the '{' at s[start]; respects strings and escapes.
   if (s[start] !== '{') return -1;
-  let depth = 0;
-  let inStr = false;
-  let escape = false;
+  let depth = 0, inStr = false, escape = false;
   for (let i = start; i < s.length; i++) {
     const c = s[i];
     if (escape) { escape = false; continue; }
@@ -510,10 +581,7 @@ function findMatchingBrace(s, start) {
     if (c === '"') { inStr = !inStr; continue; }
     if (inStr) continue;
     if (c === '{') depth++;
-    else if (c === '}') {
-      depth--;
-      if (depth === 0) return i;
-    }
+    else if (c === '}') { depth--; if (depth === 0) return i; }
   }
   return -1;
 }
@@ -524,7 +592,6 @@ async function addImageFromUrl(imgUrl) {
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       try {
-        // Re-encode to a data URL so it lives independently of network and can be exported via canvas
         const canvas = document.createElement('canvas');
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
@@ -538,9 +605,7 @@ async function addImageFromUrl(imgUrl) {
         };
         localImg.onerror = () => reject(new Error('Không decode được ảnh local'));
         localImg.src = dataUrl;
-      } catch (err) {
-        reject(err);
-      }
+      } catch (err) { reject(err); }
     };
     img.onerror = () => reject(new Error('Không tải được ảnh từ CDN'));
     img.src = imgUrl;

@@ -7,109 +7,46 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header>
+  <header class="topbar">
     <h1>LYSILK · Lồng khung ảnh Shopee</h1>
-    <p class="hint">Dán link sản phẩm để auto lấy ảnh size <strong>S</strong>, hoặc dán ảnh trực tiếp (Cmd/Ctrl+V). Kéo thả thumbnail vào 3 ô của mỗi khung rồi bấm "Tải".</p>
+    <div class="topbar-actions">
+      <button id="downloadAll" class="btn-download-all">⬇ Tải hết ảnh đã ghép</button>
+      <button id="clearAll" class="btn-clear">🗑 Xoá hết</button>
+    </div>
   </header>
 
   <section class="source-block">
-    <h2>Nguồn ảnh <small>— lấy từ link sản phẩm hoặc dán/kéo thả ảnh</small></h2>
-
     <div class="source-row">
-      <span class="source-label">Link Lysilk/Pancake (chỉ lấy ảnh size S):</span>
       <input type="url" id="urlInput" placeholder="https://www.lysilk.vn/products/bn651" />
       <button id="fetchBtn" class="btn-fetch">📥 Lấy ảnh size S</button>
+      <div id="pasteZone" class="paste-inline" tabindex="0" title="Bấm rồi Cmd/Ctrl+V để dán ảnh">📋 Paste ảnh (Cmd+V)</div>
+      <label class="file-inline" title="Chọn file ảnh">
+        📁 Chọn file
+        <input type="file" id="fileInput" accept="image/*" multiple hidden />
+      </label>
     </div>
-
-    <div class="source-sep"><span>hoặc</span></div>
-
-    <div class="source-paste" id="pasteZone" tabindex="0">
-      <div class="source-paste__main">Copy ảnh từ web bất kỳ → bấm vào đây → <kbd>Cmd/Ctrl + V</kbd> để dán</div>
-      <div class="source-paste__sub">kéo thả file ảnh vào đây · <label class="file-link">chọn file<input type="file" id="fileInput" accept="image/*" multiple hidden /></label></div>
-    </div>
-
-    <div class="url-status" id="urlStatus">Chưa thao tác — dán link hoặc ảnh để bắt đầu.</div>
+    <div class="url-status" id="urlStatus">Dán link sản phẩm Lysilk/Pancake → lấy ảnh size S. Hoặc paste/chọn ảnh trực tiếp.</div>
   </section>
 
   <section class="pool">
-    <h2>Pool ảnh <span class="pool-count" id="poolCount">(0)</span></h2>
+    <div class="pool-header">
+      <span>Pool ảnh <span id="poolCount">(0)</span></span>
+    </div>
     <div class="pool-list" id="poolList">
-      <div class="pool-empty">Chưa có ảnh nào.</div>
+      <div class="pool-empty">Chưa có ảnh. Dán link hoặc paste ảnh ở trên.</div>
     </div>
   </section>
 
-  <section class="composites composites--row">
-    <article class="composite" data-ratio="vuong">
-      <header class="composite__head">
-        <h2>Vuông có khung <small>1000×1000</small></h2>
-        <button class="btn-download" data-ratio="vuong">⬇ Tải</button>
-      </header>
-      <div class="composite__stage">
-        <div class="slots" data-ratio="vuong" style="aspect-ratio: 1 / 1;">
-          <div class="slot slot-large" data-slot="large" data-ratio="vuong">
-            <span class="slot-label">Lớn</span>
-          </div>
-          <div class="slot slot-small-top" data-slot="smallTop" data-ratio="vuong">
-            <span class="slot-label">Phụ trên</span>
-          </div>
-          <div class="slot slot-small-bot" data-slot="smallBot" data-ratio="vuong">
-            <span class="slot-label">Phụ dưới</span>
-          </div>
-          <img class="frame-overlay" src="assets/khung-vuong.png" alt="" />
-        </div>
-      </div>
-    </article>
+  <section class="composites-section">
+    <div class="row-title">3 ảnh ghép (1 lớn + 2 nhỏ)</div>
+    <div class="composites-row" id="composites-main"></div>
 
-    <article class="composite" data-ratio="3x4">
-      <header class="composite__head">
-        <h2>3:4 có khung <small>1200×1600</small></h2>
-        <button class="btn-download" data-ratio="3x4">⬇ Tải</button>
-      </header>
-      <div class="composite__stage">
-        <div class="slots" data-ratio="3x4" style="aspect-ratio: 3 / 4;">
-          <div class="slot slot-large" data-slot="large" data-ratio="3x4">
-            <span class="slot-label">Lớn</span>
-          </div>
-          <div class="slot slot-small-top" data-slot="smallTop" data-ratio="3x4">
-            <span class="slot-label">Phụ trên</span>
-          </div>
-          <div class="slot slot-small-bot" data-slot="smallBot" data-ratio="3x4">
-            <span class="slot-label">Phụ dưới</span>
-          </div>
-          <img class="frame-overlay" src="assets/khung-3x4.png" alt="" />
-        </div>
-      </div>
-    </article>
+    <div class="row-title">4 ảnh vuông đơn — 1 ảnh / khung</div>
+    <div class="composites-row composites-row--small" id="composites-vuong"></div>
 
-    <article class="composite" data-ratio="vuong-plain">
-      <header class="composite__head">
-        <h2>Vuông không khung <small>1000×1000</small></h2>
-        <button class="btn-download" data-ratio="vuong-plain">⬇ Tải</button>
-      </header>
-      <div class="composite__stage">
-        <div class="slots" data-ratio="vuong-plain" style="aspect-ratio: 1 / 1;">
-          <div class="slot slot-large" data-slot="large" data-ratio="vuong-plain">
-            <span class="slot-label">Lớn</span>
-          </div>
-          <div class="slot slot-small-top" data-slot="smallTop" data-ratio="vuong-plain">
-            <span class="slot-label">Phụ trên</span>
-          </div>
-          <div class="slot slot-small-bot" data-slot="smallBot" data-ratio="vuong-plain">
-            <span class="slot-label">Phụ dưới</span>
-          </div>
-        </div>
-      </div>
-    </article>
+    <div class="row-title">4 ảnh 3:4 đơn — 1 ảnh / khung</div>
+    <div class="composites-row composites-row--small" id="composites-3x4"></div>
   </section>
-
-  <section class="actions">
-    <button class="btn-download-all" id="downloadAll">⬇ Tải cả 2 ảnh có khung</button>
-    <button class="btn-clear" id="clearAll">🗑 Xoá hết</button>
-  </section>
-
-  <footer>
-    <small>LYSILK Shopee · build static, xử lý ảnh hoàn toàn ở trình duyệt.</small>
-  </footer>
 
   <script src="app.js"></script>
 </body>
