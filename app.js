@@ -78,15 +78,23 @@ const GROUP_CONTAINERS = {
 
 // State
 const pool = [];                     // [{ id, dataUrl, img }]
-const assignments = {};              // ratio -> slot -> pool item id
+// assignments[ratio][slotName] = null | { id, offsetX, offsetY, zoom }
+//   offsetX/Y are fractions of slot W/H (translation in display CSS px = offset * slot.clientW/H)
+//   zoom: 1 = base cover-fit; >1 = zoomed in
+const assignments = {};
 const frameImages = {};              // ratio -> HTMLImageElement (preloaded)
 let nextId = 1;
+let editingSlot = null;              // currently focused slot for pan/zoom
+let panState = null;                 // active drag-to-pan state
 
 // Initialize assignments
 for (const [ratio, spec] of Object.entries(SLOT_COORDS)) {
   assignments[ratio] = {};
   for (const slotName of Object.keys(spec.slots)) assignments[ratio][slotName] = null;
 }
+
+function freshSlotData(id) { return { id, offsetX: 0, offsetY: 0, zoom: 1 }; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
 // ----- Init -----
 function init() {
@@ -240,8 +248,8 @@ function renderPool() {
   const inUse = new Set();
   for (const ratio of Object.keys(assignments)) {
     for (const slotName of Object.keys(assignments[ratio])) {
-      const id = assignments[ratio][slotName];
-      if (id != null) inUse.add(id);
+      const data = assignments[ratio][slotName];
+      if (data && data.id != null) inUse.add(data.id);
     }
   }
   for (const item of pool) {
@@ -277,14 +285,16 @@ function removeFromPool(id) {
   pool.splice(idx, 1);
   for (const ratio of Object.keys(assignments)) {
     for (const slotName of Object.keys(assignments[ratio])) {
-      if (assignments[ratio][slotName] === id) assignments[ratio][slotName] = null;
+      const d = assignments[ratio][slotName];
+      if (d && d.id === id) assignments[ratio][slotName] = null;
     }
   }
+  exitEditMode();
   renderPool();
   renderAllSlots();
 }
 
-// ----- Slots drag/drop -----
+// ----- Slots drag/drop + pan/zoom edit mode -----
 function bindDragDrop() {
   const slots = document.querySelectorAll('.slot');
   slots.forEach(slot => {
@@ -300,13 +310,14 @@ function bindDragDrop() {
     slot.addEventListener('drop', e => {
       e.preventDefault();
       slot.classList.remove('is-drop-active');
+      exitEditMode();
       const ratio = slot.dataset.ratio;
       const slotName = slot.dataset.slot;
       let payload;
       try { payload = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }
       if (!payload) return;
       if (payload.source === 'pool') {
-        assignments[ratio][slotName] = payload.id;
+        assignments[ratio][slotName] = freshSlotData(payload.id);
       } else if (payload.source === 'slot') {
         if (payload.ratio === ratio) {
           const src = assignments[ratio][payload.slot];
@@ -314,7 +325,8 @@ function bindDragDrop() {
           assignments[ratio][slotName] = src;
           assignments[ratio][payload.slot] = dst;
         } else {
-          assignments[ratio][slotName] = assignments[payload.ratio][payload.slot];
+          const srcData = assignments[payload.ratio][payload.slot];
+          assignments[ratio][slotName] = srcData ? { ...srcData } : null;
         }
       }
       renderPool();
@@ -322,50 +334,157 @@ function bindDragDrop() {
     });
 
     slot.addEventListener('dragstart', e => {
+      // Disable HTML5 drag while in edit mode (we use mousemove for pan instead)
+      if (slot.classList.contains('is-editing')) { e.preventDefault(); return; }
       const ratio = slot.dataset.ratio;
       const slotName = slot.dataset.slot;
-      const id = assignments[ratio][slotName];
-      if (id == null) { e.preventDefault(); return; }
+      const data = assignments[ratio][slotName];
+      if (!data || data.id == null) { e.preventDefault(); return; }
       e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', JSON.stringify({ source: 'slot', ratio, slot: slotName, id }));
+      e.dataTransfer.setData('text/plain', JSON.stringify({ source: 'slot', ratio, slot: slotName, id: data.id }));
     });
 
-    slot.addEventListener('click', () => {
+    // Click on filled slot → enter/exit edit mode (pan/zoom)
+    slot.addEventListener('click', e => {
+      // Ignore clicks on the × remove button (handled separately)
+      if (e.target.closest('.slot-remove')) return;
       const ratio = slot.dataset.ratio;
       const slotName = slot.dataset.slot;
-      if (assignments[ratio][slotName] != null) {
-        if (confirm('Bỏ ảnh ở ô này?')) {
-          assignments[ratio][slotName] = null;
-          renderPool();
-          renderAllSlots();
-        }
+      const data = assignments[ratio][slotName];
+      if (!data || data.id == null) return;
+      if (slot.classList.contains('is-editing')) {
+        exitEditMode();
+      } else {
+        enterEditMode(slot);
       }
     });
+
+    // Wheel zoom — only when this slot is the editing slot
+    slot.addEventListener('wheel', e => {
+      if (slot !== editingSlot) return;
+      const data = assignments[slot.dataset.ratio][slot.dataset.slot];
+      if (!data) return;
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08;
+      data.zoom = clamp((data.zoom || 1) * factor, 1, 6);
+      applySlotTransform(slot);
+    }, { passive: false });
+
+    // Pan: mousedown -> capture pointer -> mousemove updates -> mouseup ends
+    slot.addEventListener('mousedown', e => {
+      if (slot !== editingSlot) return;
+      if (e.target.closest('.slot-remove')) return;
+      if (e.button !== 0) return;
+      e.preventDefault();
+      panState = {
+        slot,
+        startX: e.clientX,
+        startY: e.clientY,
+        baseOffsetX: assignments[slot.dataset.ratio][slot.dataset.slot].offsetX,
+        baseOffsetY: assignments[slot.dataset.ratio][slot.dataset.slot].offsetY,
+        slotW: slot.clientWidth,
+        slotH: slot.clientHeight,
+      };
+    });
   });
+
+  // Global pan handlers (so dragging out of slot still tracks)
+  document.addEventListener('mousemove', e => {
+    if (!panState) return;
+    const dx = e.clientX - panState.startX;
+    const dy = e.clientY - panState.startY;
+    const ratio = panState.slot.dataset.ratio;
+    const slotName = panState.slot.dataset.slot;
+    const data = assignments[ratio][slotName];
+    if (!data) return;
+    data.offsetX = panState.baseOffsetX + dx / panState.slotW;
+    data.offsetY = panState.baseOffsetY + dy / panState.slotH;
+    applySlotTransform(panState.slot);
+  });
+  document.addEventListener('mouseup', () => { panState = null; });
+
+  // Click outside any slot or escape → exit edit mode
+  document.addEventListener('mousedown', e => {
+    if (!editingSlot) return;
+    if (e.target.closest('.slot') !== editingSlot) exitEditMode();
+  }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') exitEditMode(); });
+}
+
+function enterEditMode(slot) {
+  if (editingSlot === slot) return;
+  exitEditMode();
+  editingSlot = slot;
+  slot.classList.add('is-editing');
+  slot.draggable = false; // disable HTML5 drag while editing
+}
+function exitEditMode() {
+  if (!editingSlot) return;
+  editingSlot.classList.remove('is-editing');
+  editingSlot.draggable = true;
+  editingSlot = null;
+  panState = null;
+}
+
+function applySlotTransform(slot) {
+  const data = assignments[slot.dataset.ratio][slot.dataset.slot];
+  if (!data) return;
+  const img = slot.querySelector('.slot-image');
+  if (!img) return;
+  const tx = (data.offsetX || 0) * slot.clientWidth;
+  const ty = (data.offsetY || 0) * slot.clientHeight;
+  img.style.transform = `translate(${tx}px, ${ty}px) scale(${data.zoom || 1})`;
 }
 
 function renderAllSlots() {
   document.querySelectorAll('.slot').forEach(slot => {
     const ratio = slot.dataset.ratio;
     const slotName = slot.dataset.slot;
-    const id = assignments[ratio][slotName];
-    if (id == null) {
-      slot.style.backgroundImage = '';
+    const data = assignments[ratio][slotName];
+
+    // Clean prior contents (keep label only)
+    const existingImg = slot.querySelector('.slot-image');
+    if (existingImg) existingImg.remove();
+    const existingRemove = slot.querySelector('.slot-remove');
+    if (existingRemove) existingRemove.remove();
+
+    if (!data || data.id == null) {
       slot.classList.add('is-empty');
       slot.classList.remove('has-image');
-    } else {
-      const item = pool.find(p => p.id === id);
-      if (item) {
-        slot.style.backgroundImage = `url("${item.dataUrl}")`;
-        slot.classList.remove('is-empty');
-        slot.classList.add('has-image');
-      } else {
-        assignments[ratio][slotName] = null;
-        slot.style.backgroundImage = '';
-        slot.classList.add('is-empty');
-        slot.classList.remove('has-image');
-      }
+      return;
     }
+    const item = pool.find(p => p.id === data.id);
+    if (!item) {
+      assignments[ratio][slotName] = null;
+      slot.classList.add('is-empty');
+      slot.classList.remove('has-image');
+      return;
+    }
+    slot.classList.remove('is-empty');
+    slot.classList.add('has-image');
+
+    const img = document.createElement('img');
+    img.className = 'slot-image';
+    img.src = item.dataUrl;
+    img.draggable = false;
+    img.alt = '';
+    slot.insertBefore(img, slot.firstChild);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'slot-remove';
+    removeBtn.type = 'button';
+    removeBtn.textContent = '×';
+    removeBtn.title = 'Bỏ ảnh khỏi ô này';
+    removeBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      exitEditMode();
+      assignments[ratio][slotName] = null;
+      renderPool();
+      renderAllSlots();
+    });
+    slot.appendChild(removeBtn);
+
+    applySlotTransform(slot);
   });
 }
 
@@ -381,11 +500,12 @@ function renderRatio(ratio) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   for (const [slotName, rect] of Object.entries(spec.slots)) {
-    const id = assignments[ratio][slotName];
-    if (id == null) continue;
-    const item = pool.find(p => p.id === id);
+    const data = assignments[ratio][slotName];
+    if (!data || data.id == null) continue;
+    const item = pool.find(p => p.id === data.id);
     if (!item || !item.img.complete) continue;
-    drawCoverFit(ctx, item.img, rect.x, rect.y, rect.w, rect.h);
+    drawWithTransform(ctx, item.img, rect.x, rect.y, rect.w, rect.h,
+                      data.offsetX || 0, data.offsetY || 0, data.zoom || 1);
   }
 
   const frame = frameImages[ratio];
@@ -395,18 +515,23 @@ function renderRatio(ratio) {
   return canvas;
 }
 
-function drawCoverFit(ctx, img, dx, dy, dw, dh) {
+// Draws img into dest rect (dx,dy,dw,dh) with cover-fit + user offset+zoom.
+// offsetX/Y are fractions of slot W/H (matches CSS translate(offsetX*W, offsetY*H) on cover-fit img).
+// zoom: 1 = cover-fit base; >1 = zoomed in further.
+function drawWithTransform(ctx, img, dx, dy, dw, dh, offsetX, offsetY, zoom) {
   const iw = img.naturalWidth || img.width;
   const ih = img.naturalHeight || img.height;
   if (!iw || !ih) return;
   const slotRatio = dw / dh;
   const imgRatio = iw / ih;
-  let sx, sy, sw, sh;
-  if (imgRatio > slotRatio) {
-    sh = ih; sw = ih * slotRatio; sx = (iw - sw) / 2; sy = 0;
-  } else {
-    sw = iw; sh = iw / slotRatio; sx = 0; sy = (ih - sh) / 2;
-  }
+  // Cover-fit base scale (canvas-px per source-px)
+  const C = (imgRatio > slotRatio) ? (dh / ih) : (dw / iw);
+  const S = C * (zoom || 1);
+  const sw = dw / S;
+  const sh = dh / S;
+  // Centered crop, then offset (negative because translating image right = sx decreases)
+  const sx = (iw - sw) / 2 - offsetX * sw;
+  const sy = (ih - sh) / 2 - offsetY * sh;
   ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 }
 
@@ -428,7 +553,7 @@ function downloadCanvas(canvas, filename) {
 
 function hasAnyImage(ratio) {
   const a = assignments[ratio];
-  return Object.values(a).some(v => v != null);
+  return Object.values(a).some(v => v && v.id != null);
 }
 
 async function downloadRatio(ratio) {

@@ -286,15 +286,66 @@ kbd {
 
 .slot {
   position: absolute;
-  background: var(--slot-empty) center/cover no-repeat;
+  background: var(--slot-empty);
   border: 1px dashed var(--border-strong);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color .12s, border-color .12s;
+  overflow: hidden;
+  transition: border-color .12s, box-shadow .12s;
 }
 .slot.is-drop-active { background-color: #ffe9e9; border-color: var(--accent); }
+.slot.is-editing {
+  cursor: move;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 1px #fff inset, 0 0 8px rgba(217,38,38,.4);
+  z-index: 5;
+}
+.slot.is-editing::after {
+  content: "Cuộn để zoom · Kéo để di chuyển · Esc để xong";
+  position: absolute;
+  left: 4px; bottom: 4px; right: 4px;
+  background: rgba(0,0,0,.65);
+  color: #fff;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 9px;
+  text-align: center;
+  pointer-events: none;
+  letter-spacing: 0.2px;
+}
+.slot-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform-origin: center center;
+  user-select: none;
+  pointer-events: none;
+}
+.slot-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(217,38,38,.92);
+  color: #fff;
+  border: 1px solid #fff;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  z-index: 6;
+}
+.slot.has-image:hover .slot-remove,
+.slot.is-editing .slot-remove { display: flex; }
 .slot-label {
   font-size: 10px;
   color: var(--muted);
