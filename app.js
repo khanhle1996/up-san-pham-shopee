@@ -49,17 +49,17 @@ const SLOT_COORDS = {
     },
   },
 
-  // === Group: 4 single vuông (1 photo per frame) ===
-  'vuong-s1': { group: 'single-vuong', ...single(1000, 1000, VUONG_FRAME, 'Vuông 1') },
-  'vuong-s2': { group: 'single-vuong', ...single(1000, 1000, VUONG_FRAME, 'Vuông 2') },
-  'vuong-s3': { group: 'single-vuong', ...single(1000, 1000, VUONG_FRAME, 'Vuông 3') },
-  'vuong-s4': { group: 'single-vuong', ...single(1000, 1000, VUONG_FRAME, 'Vuông 4') },
+  // === Group: 4 single vuông (1 photo, không khung) ===
+  'vuong-s1': { group: 'single-vuong', ...single(1000, 1000, null, 'Vuông 1') },
+  'vuong-s2': { group: 'single-vuong', ...single(1000, 1000, null, 'Vuông 2') },
+  'vuong-s3': { group: 'single-vuong', ...single(1000, 1000, null, 'Vuông 3') },
+  'vuong-s4': { group: 'single-vuong', ...single(1000, 1000, null, 'Vuông 4') },
 
-  // === Group: 4 single 3:4 (1 photo per frame) ===
-  '3x4-s1': { group: 'single-3x4', ...single(1200, 1600, X34_FRAME, '3:4 #1') },
-  '3x4-s2': { group: 'single-3x4', ...single(1200, 1600, X34_FRAME, '3:4 #2') },
-  '3x4-s3': { group: 'single-3x4', ...single(1200, 1600, X34_FRAME, '3:4 #3') },
-  '3x4-s4': { group: 'single-3x4', ...single(1200, 1600, X34_FRAME, '3:4 #4') },
+  // === Group: 4 single 3:4 (1 photo, không khung) ===
+  '3x4-s1': { group: 'single-3x4', ...single(1200, 1600, null, '3:4 #1') },
+  '3x4-s2': { group: 'single-3x4', ...single(1200, 1600, null, '3:4 #2') },
+  '3x4-s3': { group: 'single-3x4', ...single(1200, 1600, null, '3:4 #3') },
+  '3x4-s4': { group: 'single-3x4', ...single(1200, 1600, null, '3:4 #4') },
 };
 
 const RATIO_FILENAMES = {
