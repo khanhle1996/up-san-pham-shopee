@@ -108,7 +108,7 @@ async function caHealthCheck() {
   el.textContent = '⏳ Đang check backend...';
   el.className = 'ca-health';
   try {
-    const res = await fetch(CA_STATE.backendUrl + '/api/health', { credentials: 'include' });
+    const res = await fetch(CA_STATE.backendUrl + '/api/health');
     if (res.ok) {
       const j = await res.json();
       el.textContent = `✓ Backend OK · account ${j.ad_account_id || '?'} · token live`;
@@ -436,7 +436,6 @@ async function caSubmit(dry) {
     const res = await fetch(CA_STATE.backendUrl + '/api/launch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));
