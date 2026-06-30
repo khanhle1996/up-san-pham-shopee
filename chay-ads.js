@@ -218,9 +218,9 @@ function caAddImageDedup(u, seen, result, source) {
   const key = m ? m[1] : u;
   if (seen.has(key)) return;
   seen.add(key);
-  // Resize via Pancake CDN: cho ad ưu tiên ảnh chất lượng cao hơn Shopee
-  const resized = u.replace(/\/web-media(?:-\d+)?\//, '/1/s2000x2000/fwebp90/');
-  result.push({ url: resized, source });
+  // Pancake CDN mới (web-media-<shard>) KHÔNG còn support resize prefix /1/sXxX/.
+  // Dùng URL gốc full-res (~1347x2048, ~300KB) — phù hợp ad creative cần res cao.
+  result.push({ url: u, source });
 }
 
 function caFindMatchingBrace(s, start) {

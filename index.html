@@ -4,15 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LYSILK · Lồng khung ảnh Shopee</title>
-  <link rel="stylesheet" href="styles.css?v=11" />
+  <link rel="stylesheet" href="styles.css?v=13" />
 </head>
 <body>
-  <nav class="tabs">
-    <button class="tab is-active" data-tab="shopee" type="button">📐 Lồng khung Shopee</button>
-    <button class="tab" data-tab="chay-ads" type="button">🚀 Chạy ADS Lysilk</button>
-  </nav>
-
-  <section class="tab-pane is-active" data-pane="shopee">
   <header class="topbar">
     <h1>LYSILK · Lồng khung ảnh Shopee</h1>
     <div class="topbar-actions">
@@ -54,149 +48,6 @@
     <div class="composites-row composites-row--small" id="composites-3x4"></div>
   </section>
 
-  </section>
-
-  <!-- ====================== TAB 2: CHẠY ADS ====================== -->
-  <section class="tab-pane" data-pane="chay-ads">
-    <header class="topbar">
-      <h1>🚀 Chạy ADS Lysilk — account Lysilk 2 (3219...0795)</h1>
-    </header>
-    <p class="hint">
-      Dán link sản phẩm Lysilk → quét ảnh → tick 3-4 ảnh + chọn layout → preview canvas
-      → điền content → <strong>Gửi lên Ads (PAUSED)</strong>. Anh active tay trong Ads Manager.
-    </p>
-
-    <section class="ca-backend">
-      <label>Backend URL (Win10 + Cloudflare Tunnel):
-        <input type="url" id="caBackendUrl" placeholder="https://chay-ads.<domain>.com hoặc https://<random>.trycloudflare.com" />
-      </label>
-      <div class="ca-health" id="caHealth">⚠️ Chưa cấu hình URL backend</div>
-    </section>
-
-    <section class="ca-step">
-      <h2><span class="ca-step-num">1</span> Quét ảnh sản phẩm</h2>
-      <div class="source-row">
-        <input type="url" id="caUrlInput" placeholder="https://www.lysilk.vn/products/..." />
-        <button id="caScanBtn" class="btn-fetch">🔍 Quét</button>
-      </div>
-      <div class="url-status" id="caStatus">Chưa thao tác.</div>
-    </section>
-
-    <section class="ca-step">
-      <h2><span class="ca-step-num">2</span> Chọn ảnh + layout
-        <span class="ca-image-count" id="caImageCount">(0 ảnh)</span>
-      </h2>
-
-      <div class="ca-layout-picker">
-        <label class="ca-layout-opt">
-          <input type="radio" name="caLayout" value="L4" checked />
-          <span class="ca-layout-card">
-            <strong>L4</strong> · 1 to + 3 nhỏ
-            <span class="ca-layout-thumb ca-layout-thumb--l4">
-              <span class="ca-lt-large"></span>
-              <span class="ca-lt-s1"></span><span class="ca-lt-s2"></span><span class="ca-lt-s3"></span>
-            </span>
-          </span>
-        </label>
-        <label class="ca-layout-opt">
-          <input type="radio" name="caLayout" value="L3" />
-          <span class="ca-layout-card">
-            <strong>L3</strong> · 1 to + 2 nhỏ
-            <span class="ca-layout-thumb ca-layout-thumb--l3">
-              <span class="ca-lt-large"></span>
-              <span class="ca-lt-s1"></span><span class="ca-lt-s2"></span>
-            </span>
-          </span>
-        </label>
-      </div>
-
-      <div class="ca-step2-grid">
-        <div class="ca-image-grid" id="caImageGrid">
-          <div class="ca-empty">Chưa quét. Dán link sản phẩm + bấm Quét.</div>
-        </div>
-        <div class="ca-preview">
-          <div class="ca-preview-label">Preview ảnh ghép (1080×1080)</div>
-          <canvas id="caPreviewCanvas" width="1080" height="1080"></canvas>
-        </div>
-      </div>
-    </section>
-
-    <section class="ca-step">
-      <h2><span class="ca-step-num">3</span> Content + targeting</h2>
-
-      <div class="ca-form-grid">
-        <label>Headline (2-5 từ)
-          <input type="text" id="caBrief_headline" maxlength="40" />
-        </label>
-        <label>Landing URL (click ad đi về đâu)
-          <input type="url" id="caBrief_landing_url" />
-        </label>
-
-        <label class="ca-full">Primary text (1-2 câu mô tả)
-          <textarea id="caBrief_primary_text" rows="2" maxlength="200"></textarea>
-        </label>
-
-        <label>CTA
-          <select id="caBrief_cta">
-            <option value="SHOP_NOW">SHOP NOW</option>
-            <option value="LEARN_MORE">LEARN MORE</option>
-            <option value="ORDER_NOW">ORDER NOW</option>
-            <option value="GET_OFFER">GET OFFER</option>
-          </select>
-        </label>
-        <label>Budget VND / ngày
-          <input type="number" id="caBrief_daily_budget_vnd" min="50000" step="10000" />
-        </label>
-
-        <label>Tuổi từ
-          <input type="number" id="caBrief_age_min" min="18" max="65" />
-        </label>
-        <label>Tuổi đến
-          <input type="number" id="caBrief_age_max" min="18" max="65" />
-        </label>
-
-        <label>Giới tính (1=Nam, 2=Nữ, phẩy ngăn cách)
-          <input type="text" id="caBrief_genders" placeholder="2" />
-        </label>
-        <label>Interest (tiếng Việt)
-          <input type="text" id="caBrief_interest_query" />
-        </label>
-        <label>Interest fallback (tiếng Anh)
-          <input type="text" id="caBrief_interest_fallback" />
-        </label>
-      </div>
-
-      <div class="ca-submit-row">
-        <button id="caDryRunBtn" class="btn-clear" type="button" disabled>🔍 Xem dry-run</button>
-        <button id="caLaunchBtn" class="btn-download-all" type="button" disabled>🚀 Gửi lên Ads (PAUSED)</button>
-        <div class="ca-submit-reason" id="caSubmitReason">⚠️ Chưa nhập URL backend.</div>
-      </div>
-    </section>
-
-    <section class="ca-result hidden" id="caResult"></section>
-
-    <footer>
-      <small>Chạy ADS Web · Lysilk 2 · ảnh xử lý ở browser, ads launch qua Win10 backend (Cloudflare Tunnel).</small>
-    </footer>
-  </section>
-
-  <script src="app.js?v=11"></script>
-  <script src="chay-ads.js?v=11"></script>
-  <script>
-    (function () {
-      let chayAdsInitialized = false;
-      document.querySelectorAll('.tab').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const tab = btn.dataset.tab;
-          document.querySelectorAll('.tab').forEach(t => t.classList.toggle('is-active', t === btn));
-          document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('is-active', p.dataset.pane === tab));
-          if (tab === 'chay-ads' && !chayAdsInitialized) {
-            window.caInit && window.caInit();
-            chayAdsInitialized = true;
-          }
-        });
-      });
-    })();
-  </script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>
